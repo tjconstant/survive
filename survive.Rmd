@@ -1,0 +1,104 @@
+---
+title: "survive!"
+author: "Tom Constant"
+date: "1 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+set.seed(1)
+```
+
+
+```{r}
+animal <- setRefClass("animal",
+                    fields = list(
+                      x = "numeric", 
+                      y = "numeric",
+                      nx = "numeric",
+                      ny = "numeric",
+                      alive = "logical",
+                      t = "numeric",
+                      hunger = "numeric"
+                      ),
+                    methods = list(
+                      initialize = function(..., 
+                                            nx = 10, 
+                                            ny = 10, 
+                                            alive = TRUE,
+                                            t = 1,
+                                            hunger = 0){
+                        callSuper(..., 
+                                  x = round(runif(1, min = 1, max = nx)), 
+                                  y = round(runif(1, min = 1, max = ny)), 
+                                  nx = nx, 
+                                  ny = ny, 
+                                  alive = alive,
+                                  t = t,
+                                  hunger = hunger)
+                      },
+                      set.x = function(x){
+                          x[t] <<- .set(x, nx)
+                      },
+                      set.y = function(y){
+                          y[t] <<- .set(y, ny)
+                      },
+                      .set = function(v, nv){
+                          if(v > nv) v <- 1
+                          if(v < 1) v <- nv
+                          return(v)
+                      },
+                      position = function(){
+                        c(x[t],y[t])
+                      },
+                      kill = function(){
+                        alive <<- FALSE
+                      },
+                      step = function(){
+                        t <<- t + 1
+                        
+                        .check_status()
+                        
+                        dx <- round(runif(1, min = -1, max = 1))
+                        dy <- round(runif(1, min = -1, max = 1))
+                        
+                        if(dx != 0 | dy != 0) hunger <<- hunger + 1
+                        
+                        set.x(x[t-1] + dx)
+                        set.y(y[t-1] + dy)
+                        
+                      },
+                      .check_status = function(){
+                        if(hunger >= 100) kill()
+                      }
+                    )
+                    )
+```
+  
+  
+```{r, fig.show='animate', interval=0.1}
+percy <- animal$new() # prey
+gerald <- animal$new() # predator
+
+nx <- ny <- 10
+time <- 100
+area <- array(rep(0,nx*ny*time), dim = c(nx,ny, time))
+
+for(i in 1:time){
+  percy$step()
+  gerald$step()
+  
+  if(all(gerald$position() == percy$position())){
+    percy$kill()
+    print("Percy Died!")
+  }
+  
+  if(percy$alive) area[percy$x[i], percy$y[i], i] <- 1
+  if(gerald$alive) area[gerald$x[i], gerald$y[i], i] <- -1
+  image(area[,,i], asp = nx/ny, zlim=c(-1,1))
+}
+```
